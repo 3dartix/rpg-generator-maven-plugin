@@ -153,3 +153,84 @@ mvn rpg-generator:build
 - Commons IO (commons-io:commons-io:2.16.1)
 - Jackson (com.fasterxml.jackson.core:jackson-databind:2.17.2)
 - JDOM2 (org.jdom:jdom2:2.0.6)
+
+## Простой сервис для перевода на python
+
+Для использования функции перевода русскоязычных названий, необходимо настроить простой сервис-переводчик. Ниже приведена инструкция по его развертыванию с использованием Docker.
+
+### Структура проекта
+
+```
+translate-service/
+├── app.py
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
+```
+
+### Файлы сервиса
+
+1. `app.py` - основной файл приложения:
+```python
+from flask import Flask, request
+from googletrans import Translator
+
+app = Flask(__name__)
+
+@app.route('/')
+def translate_query():
+    text = request.args.get('text', '')
+    translator = Translator()
+    translation = translator.translate(text, src='ru', dest='en')
+    return translation.text
+
+def translate_russian_to_english(text):
+    translator = Translator()
+    translation = translator.translate(text, src='ru', dest='en')
+    return translation.text
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+2. `Dockerfile`:
+```dockerfile
+FROM python:3.9
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "app.py"]
+```
+
+3. `requirements.txt`:
+```
+Flask==2.1.1
+Werkzeug==2.1.1
+googletrans==4.0.0-rc1
+```
+
+4. `docker-compose.yml`:
+```yaml
+version: '3.9'
+
+services:
+  translate-service:
+    build: .
+    ports:
+      - "5000:5000"
+```
+
+### Использование с RPG Generator
+
+После запуска сервиса укажите его URL в конфигурации плагина:
+```xml
+<configuration>
+    <translateServiceUrl>http://localhost:5000</translateServiceUrl>
+</configuration>
+``` 
